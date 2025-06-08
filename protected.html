@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Protected Page</title>
+<style>
+  body { font-family: Arial, sans-serif; }
+  #loginForm, #content { max-width: 300px; margin: 50px auto; }
+  #content { display: none; }
+  .error { color: red; }
+</style>
+</head>
+<body>
+
+<h2>MegaBlox - Protected Page</h2>
+
+<div id="loginForm">
+  <h3>Please Log In</h3>
+  <input type="text" id="username" placeholder="Username" /><br /><br />
+  <input type="password" id="password" placeholder="Password" /><br /><br />
+  <button onclick="login()">Log In</button>
+  <p class="error" id="errorMsg"></p>
+</div>
+
+<div id="content">
+  <h3>Welcome to the protected content!</h3>
+  <p>This page is visible only for logged-in users.</p>
+  <button onclick="logout()">Log Out</button>
+</div>
+
+<script>
+  // Example hardcoded users (in real life, don't store passwords like this)
+  const users = {
+    "test1": "haslo1",
+    "test2": "haslo2",
+    "test3": "haslo3"
+  };
+
+  function showContent() {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+  }
+
+  function showLogin() {
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('content').style.display = 'none';
+  }
+
+  function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    if(users[username] && users[username] === password) {
+      // Save login state in localStorage
+      localStorage.setItem('megaBloxUser', username);
+      showContent();
+      document.getElementById('errorMsg').textContent = '';
+    } else {
+      document.getElementById('errorMsg').textContent = 'Incorrect username or password.';
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('megaBloxUser');
+    showLogin();
+  }
+
+  // On page load, check if user is logged in
+  window.onload = () => {
+    const loggedUser = localStorage.getItem('megaBloxUser');
+    if(loggedUser && users[loggedUser]) {
+      showContent();
+    } else {
+      showLogin();
+    }
+  }
+</script>
+
+</body>
+</html>
