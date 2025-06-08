@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MegaBlox - Home</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #121212; color: #eee; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+  #loginForm, #welcomeSection { background: #1e1e1e; padding: 30px; border-radius: 10px; box-shadow: 0 0 15px #4caf50; width: 320px; text-align: center; }
+  input { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
+  button { padding: 10px 20px; background: #4caf50; border: none; border-radius: 5px; color: white; cursor: pointer; }
+  button:hover { background: #45a049; }
+  .error { color: #ff4444; margin-bottom: 15px; }
+</style>
+</head>
+<body>
+
+<div id="loginForm" style="display:none;">
+  <h2>Login to MegaBlox</h2>
+  <div class="error" id="errorMsg"></div>
+  <input type="text" id="username" placeholder="Username" autocomplete="off" />
+  <input type="password" id="password" placeholder="Password" autocomplete="off" />
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="welcomeSection" style="display:none;">
+  <h2 id="welcomeMsg"></h2>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<script>
+// Testowe konta z haszowanymi hasłami (prosty przykład)
+const users = {
+  "test1": "cGFzc3dvcmQx", // base64 hasło "password1"
+  "test2": "cGFzc3dvcmQy", // base64 hasło "password2"
+  "test3": "cGFzc3dvcmQz", // base64 hasło "password3"
+  "MegaBlox": "dkExNGN6RTkhMw==" // base64 hasło "vA14czE9!3"
+};
+
+function base64Encode(str) {
+  return btoa(str);
+}
+
+function login() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  const errorMsg = document.getElementById("errorMsg");
+  errorMsg.textContent = "";
+
+  if (!username || !password) {
+    errorMsg.textContent = "Please enter username and password.";
+    return;
+  }
+
+  const storedHash = users[username];
+  if (!storedHash) {
+    errorMsg.textContent = "User not found.";
+    return;
+  }
+
+  if (storedHash === base64Encode(password)) {
+    localStorage.setItem("loggedInUser", username);
+    showWelcome();
+  } else {
+    errorMsg.textContent = "Incorrect password.";
+  }
+}
+
+function showWelcome() {
+  const user = localStorage.getItem("loggedInUser");
+  if (!user) {
+    document.getElementById("loginForm").style.display = "block";
+    document.getElementById("welcomeSection").style.display = "none";
+  } else {
+    document.getElementById("welcomeMsg").textContent = `Welcome, ${user}!`;
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("welcomeSection").style.display = "block";
+  }
+}
+
+function logout() {
+  localStorage.removeItem("loggedInUser");
+  showWelcome();
+}
+
+// On page load
+showWelcome();
+</script>
+
+</body>
+</html>
