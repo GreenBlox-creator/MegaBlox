@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MegaBlox - Login & Search</title>
+<style>
+  body {
+    background: #121212;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+  }
+  #login-container, #welcome-container {
+    background: #222;
+    padding: 30px 40px;
+    border-radius: 8px;
+    width: 320px;
+  }
+  h2 {
+    margin-top: 0;
+  }
+  input[type=text], input[type=password], #search-input {
+    width: 100%;
+    padding: 8px 10px;
+    margin: 8px 0 15px 0;
+    border-radius: 4px;
+    border: none;
+    font-size: 16px;
+  }
+  button {
+    background: #28a745;
+    border: none;
+    padding: 10px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 100%;
+  }
+  button:hover {
+    background: #1e7e34;
+  }
+  #error-msg {
+    color: #f44336;
+    margin-bottom: 15px;
+    display: none;
+  }
+  #top-bar {
+    background: #222;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border-radius: 8px 8px 0 0;
+  }
+  #top-bar h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: normal;
+    flex-grow: 1;
+  }
+  #search-container {
+    position: relative;
+    flex-grow: 1;
+  }
+  #search-input {
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 16px;
+    border-radius: 4px;
+    border: none;
+  }
+  #search-button {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    margin-left: 10px;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+  #suggestions {
+    position: absolute;
+    top: 38px;
+    left: 0;
+    right: 0;
+    background: #333;
+    border-radius: 0 0 4px 4px;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 100;
+  }
+  #suggestions div {
+    padding: 8px 10px;
+    cursor: pointer;
+  }
+  #suggestions div:hover {
+    background: #555;
+  }
+  #no-results {
+    padding: 8px 10px;
+    color: #f55;
+  }
+  #welcome-message {
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  #logout-btn {
+    background: #d9534f;
+    margin-top: 20px;
+    width: 100%;
+  }
+  #friends-section, #continue-section {
+    margin-top: 30px;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Logowanie -->
+<div id="login-container" style="display: block;">
+  <h2>Logowanie</h2>
+  <div id="error-msg">Nieprawidłowy login lub hasło.</div>
+  <input type="text" id="login-username" placeholder="Nazwa użytkownika" autocomplete="username" />
+  <input type="password" id="login-password" placeholder="Hasło" autocomplete="current-password" />
+  <button id="login-btn">Zaloguj się</button>
+</div>
+
+<!-- Po zalogowaniu -->
+<div id="welcome-container" style="display: none; flex-direction: column; width: 400px;">
+  <div id="top-bar">
+    <h1>SearchGames 🔍</h1>
+    <form id="search-form" style="display:flex; flex-grow:1; gap:10px; margin:0;">
+      <div id="search-container">
+        <input type="text" id="search-input" placeholder="Szukaj gier..." autocomplete="off" required />
+        <div id="suggestions" style="display:none;"></div>
+      </div>
+      <button type="submit" id="search-button">Szukaj</button>
+    </form>
+  </div>
+
+  <div id="welcome-message"></div>
+
+  <div id="friends-section">Friends (0)</div>
+  <div id="continue-section">Continue playing: nothing</div>
+
+  <button id="logout-btn">Wyloguj się</button>
+</div>
+
+<script>
+  // Testowe konta (hasła zahashowane SHA-256)
+  // hasło: "vA14czE9!3" dla MegaBlox
+  // hasło: "test123" dla test1, test2, test3 (upraszczając)
+  const users = {
+  "MegaBlox": "4e829a6580be7b77a06d59ac59e3b78d7d7e01d455f6e2726eb87f650c1c39dc", // hasło: vA14czE9!3
+  "test1": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",  // hasło: test123
+  "test2": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+  "test3": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+};
+
+  // SHA-256 hash function - używam Web Crypto API
+  async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  const loginContainer = document.getElementById('login-container');
+  const welcomeContainer = document.getElementById('welcome-container');
+  const loginBtn = document.getElementById('login-btn');
+  const errorMsg = document.getElementById('error-msg');
+  const usernameInput = document.getElementById('login-username');
+  const passwordInput = document.getElementById('login-password');
+  const welcomeMessage = document.getElementById('welcome-message');
+  const logoutBtn = document.getElementById('logout-btn');
+
+  // Logowanie
+  loginBtn.addEventListener('click', async () => {
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!username || !password) {
+      errorMsg.textContent = 'Wypełnij wszystkie pola.';
+      errorMsg.style.display = 'block';
+      return;
+    }
+
+    if (!(username in users)) {
+      errorMsg.textContent = 'Nieprawidłowy login lub hasło.';
+      errorMsg.style.display = 'block';
+      return;
+    }
+
+    const hashedPassword = await sha256(password);
+    if (hashedPassword === users[username]) {
+      // Logowanie udane
+      errorMsg.style.display = 'none';
+      loginContainer.style.display = 'none';
+      welcomeContainer.style.display = 'flex';
+      welcomeMessage.textContent = `Welcome, ${username}`;
+      usernameInput.value = '';
+      passwordInput.value = '';
+      currentUser = username;
+    } else {
+      errorMsg.textContent = 'Nieprawidłowy login lub hasło.';
+      errorMsg.style.display = 'block';
+    }
+  });
+
+  // Wylogowanie
+  logoutBtn.addEventListener('click', () => {
+    welcomeContainer.style.display = 'none';
+    loginContainer.style.display = 'block';
+    currentUser = null;
+    clearSearch();
+  });
+
+  // SZUKAJKA Z PODPOWIEDZIAMI
+  const games = ['obby', 'shooter', 'puzzle', 'racing', 'adventure', 'platformer'];
+  const input = document.getElementById('search-input');
+  const suggestionsBox = document.getElementById('suggestions');
+  const searchForm = document.getElementById('search-form');
+
+  function showSuggestions(query) {
+    suggestionsBox.innerHTML = '';
+    if (!query) {
+      suggestionsBox.style.display = 'none';
+      return;
+    }
+
+    const matches = games.filter(game => game.toLowerCase().includes(query.toLowerCase()));
+    if (matches.length === 0) {
+      suggestionsBox.innerHTML = '<div id="no-results">Brak wyników</div>';
+    } else {
+      matches.forEach(match => {
+        const div = document.createElement('div');
+        div.textContent = match;
+        div.addEventListener('click', () => {
+          input.value = match;
+          suggestionsBox.style.display = 'none';
+        });
+        suggestionsBox.appendChild(div);
+      });
+    }
+    suggestionsBox.style.display = 'block';
+  }
+
+  input.addEventListener('input', (e) => {
+    showSuggestions(e.target.value);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!suggestionsBox.contains(e.target) && e.target !== input) {
+      suggestionsBox.style.display = 'none';
+    }
+  });
+
+  searchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    alert(`Szukasz gry: ${input.value}`);
+    suggestionsBox.style.display = 'none';
+  });
+
+  function clearSearch() {
+    input.value = '';
+    suggestionsBox.innerHTML = '';
+    suggestionsBox.style.display = 'none';
+  }
+</script>
+</body>
+</html>
