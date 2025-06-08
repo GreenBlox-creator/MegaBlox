@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>MegaBlox Alpha - Logowanie</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1e1e2f;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+      margin: 0;
+    }
+    header {
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 3rem;
+      margin: 0;
+      color: #4caf50; /* zielony */
+    }
+    header p {
+      font-size: 1.2rem;
+      margin-top: 4px;
+      color: #a5d6a7;
+    }
+    .container {
+      background: #2c2c3e;
+      padding: 25px 40px;
+      border-radius: 10px;
+      width: 320px;
+      box-shadow: 0 0 10px #4caf50aa;
+    }
+    input[type=text], input[type=password] {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0 15px 0;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background: #4caf50;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #388e3c;
+    }
+    #message {
+      margin: 15px 0;
+      height: 22px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .toggle {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #aaa;
+      text-align: center;
+    }
+    .toggle button {
+      background: none;
+      color: #4caf50;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>MegaBlox <small style="font-size: 1rem; color: #a5d6a7;">Alpha</small></h1>
+  <p>Planowana premiera: 20 listopada 2025</p>
+</header>
+
+<div class="container" id="login-container">
+  <h2>Logowanie</h2>
+  <input type="text" id="login-username" placeholder="Nazwa użytkownika" />
+  <input type="password" id="login-password" placeholder="Hasło" />
+  <button onclick="login()">Zaloguj się</button>
+  <div id="message"></div>
+  <div class="toggle">Nie masz konta? <button onclick="showRegister()">Zarejestruj się</button></div>
+</div>
+
+<div class="container" id="register-container" style="display:none;">
+  <h2>Rejestracja</h2>
+  <input type="text" id="register-username" placeholder="Nazwa użytkownika" />
+  <input type="password" id="register-password" placeholder="Hasło" />
+  <button onclick="register()">Zarejestruj</button>
+  <div id="reg-message"></div>
+  <div class="toggle">Masz konto? <button onclick="showLogin()">Zaloguj się</button></div>
+</div>
+
+<script>
+  // Trzy testowe konta - hasła liczbowe 1 2 3
+  // Hasła są zahashowane SHA-256
+  // Możesz je łatwo podmienić, jeśli dasz mi hasło w plaintext, zahashuję
+  const users = {
+  test1: "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5", // hasło: "12345"
+  test2: "2f3b5a516497ba040be41eb6e8a98f9b0dba48f2a4040837b5c2be893f2a5c17", // hasło: "23456"
+  test3: "e7b8e4a65a6f97b34c6be0428b52c15c1aafc622cc2f57819d4ad52a0d3f3c1a"  // hasło: "34567"
+};
+
+  async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function showRegister() {
+    document.getElementById('login-container').style.display = 'none';
+    document.getElementById('register-container').style.display = 'block';
+    clearMessages();
+  }
+
+  function showLogin() {
+    document.getElementById('register-container').style.display = 'none';
+    document.getElementById('login-container').style.display = 'block';
+    clearMessages();
+  }
+
+  function clearMessages() {
+    document.getElementById('message').textContent = '';
+    document.getElementById('reg-message').textContent = '';
+  }
+
+  async function login() {
+    clearMessages();
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    if (!username || !password) {
+      document.getElementById('message').textContent = 'Wpisz nazwę użytkownika i hasło.';
+      return;
+    }
+
+    if (!(username in users)) {
+      document.getElementById('message').textContent = 'Nieprawidłowa nazwa użytkownika lub hasło.';
+      return;
+    }
+
+    const hashedPass = await sha256(password);
+
+    if (users[username] === hashedPass) {
+      localStorage.setItem('user', username);
+      document.getElementById('message').style.color = 'lightgreen';
+      document.getElementById('message').textContent = 'Zalogowano pomyślnie!';
+      setTimeout(() => {
+        window.location.href = `strona_${username}.html`; // podstrona użytkownika
+      }, 1200);
+    } else {
+      document.getElementById('message').style.color = 'red';
+      document.getElementById('message').textContent = 'Nieprawidłowa nazwa użytkownika lub hasło.';
+    }
+  }
+
+  function register() {
+    clearMessages();
+    const username = document.getElementById('register-username').value.trim();
+    const password = document.getElementById('register-password').value;
+
+    if (!username || !password) {
+      document.getElementById('reg-message').style.color = 'red';
+      document.getElementById('reg-message').textContent = 'Wpisz nazwę użytkownika i hasło.';
+      return;
+    }
+
+    // Przekierowanie do strony WordPress z nazwą użytkownika w URL
+    const wpUrl = `https://twojastrona.pl/${encodeURIComponent(username)}`;
+    window.location.href = wpUrl;
+
+    // Tutaj możesz dodać wysyłkę maila albo inny mechanizm backendowy (po stronie serwera)
+  }
+</script>
+
+</body>
+</html>
